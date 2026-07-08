@@ -3,9 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<title>Uskiy Kurug uchun Uyrat</title>
+<title>Uskiy jgarlar uchun lokatsiyalar</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -21,7 +22,7 @@
     <div class="brand">
       <span class="brand-mark">🌍</span>
       <div class="brand-text">
-        <h1>Uskiy Kurug uchun Uyrat</h1>
+        <h1>Uskiy jgarlar uchun lokatsiyalar</h1>
         <p id="placeCount">Hali joylar qo'shilmagan</p>
       </div>
     </div>
@@ -63,7 +64,10 @@
           <span class="upload-icon">📷</span>
           <span>Rasm tanlash uchun bosing</span>
         </div>
-        <img id="photoPreview" class="photo-preview" hidden>
+        <div id="previewMedia" class="preview-media" hidden>
+          <img id="photoPreviewBg" class="preview-bg" alt="">
+          <img id="photoPreviewFg" class="preview-fg" alt="">
+        </div>
       </div>
 
       <div class="field">
@@ -73,14 +77,31 @@
 
       <div class="field">
         <label for="locationInput">Joylashuvi</label>
-        <div class="location-row">
-          <input type="text" id="locationInput" placeholder="Manzil yoki tuman" maxlength="80">
-          <button class="btn-gps" id="gpsBtn" type="button" title="Joriy joylashuvni aniqlash">📍</button>
+        <div class="location-autocomplete">
+          <input type="text" id="locationInput" placeholder="Manzil yoki tuman nomini yozing" maxlength="80" autocomplete="off">
+          <div class="suggestions" id="suggestions" hidden></div>
+        </div>
+        <div class="location-actions">
+          <button class="btn-loc-action" id="gpsBtn" type="button">📍 Hozirgi joylashuvim</button>
+          <button class="btn-loc-action" id="mapPickBtn" type="button">🗺️ Xaritadan tanlash</button>
         </div>
         <p class="gps-status" id="gpsStatus"></p>
       </div>
 
       <button class="btn-primary btn-submit" id="submitBtn" disabled>Qo'shish</button>
+    </div>
+  </div>
+
+  <!-- Map picker -->
+  <div class="overlay overlay-map" id="mapPickerOverlay">
+    <div class="map-picker">
+      <div class="map-picker-header">
+        <h3>Xaritadan joy tanlang</h3>
+        <button class="modal-close" id="mapPickerClose">✕</button>
+      </div>
+      <div id="pickerMap" class="picker-map"></div>
+      <p class="map-picker-hint">Xaritani bosib, aniq nuqtani belgilang</p>
+      <button class="btn-primary btn-submit" id="mapPickConfirm">Shu joyni tanlash</button>
     </div>
   </div>
 
@@ -101,11 +122,11 @@
         <button class="map-opt" data-map="yandex"><span class="map-icon yandex">Y</span>Yandex Maps</button>
         <button class="map-opt" data-map="2gis"><span class="map-icon twogis">2</span>2GIS</button>
       </div>
-      <button class="btn-delete" id="deletePlaceBtn">🗑 Bu joyni o'chirish</button>
       <button class="btn-cancel" id="sheetCancel">Bekor qilish</button>
     </div>
   </div>
 
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

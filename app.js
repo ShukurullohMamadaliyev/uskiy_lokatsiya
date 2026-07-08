@@ -41,17 +41,6 @@ async function getAllPlaces() {
   });
 }
 
-async function deletePlace(id) {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readwrite');
-    const store = tx.objectStore(STORE);
-    const req = store.delete(id);
-    req.onsuccess = () => resolve();
-    req.onerror = () => reject(req.error);
-  });
-}
-
 // ---------- State ----------
 let places = [];
 let pendingPhotoBlob = null;
@@ -71,11 +60,15 @@ const closeModal = document.getElementById('closeModal');
 const uploadZone = document.getElementById('uploadZone');
 const photoInput = document.getElementById('photoInput');
 const uploadPlaceholder = document.getElementById('uploadPlaceholder');
-const photoPreview = document.getElementById('photoPreview');
+const previewMedia = document.getElementById('previewMedia');
+const photoPreviewBg = document.getElementById('photoPreviewBg');
+const photoPreviewFg = document.getElementById('photoPreviewFg');
 
 const nameInput = document.getElementById('nameInput');
 const locationInput = document.getElementById('locationInput');
+const suggestions = document.getElementById('suggestions');
 const gpsBtn = document.getElementById('gpsBtn');
+const mapPickBtn = document.getElementById('mapPickBtn');
 const gpsStatus = document.getElementById('gpsStatus');
 const submitBtn = document.getElementById('submitBtn');
 
@@ -84,7 +77,10 @@ const sheetPhoto = document.getElementById('sheetPhoto');
 const sheetName = document.getElementById('sheetName');
 const sheetLocation = document.getElementById('sheetLocation');
 const sheetCancel = document.getElementById('sheetCancel');
-const deletePlaceBtn = document.getElementById('deletePlaceBtn');
+
+const mapPickerOverlay = document.getElementById('mapPickerOverlay');
+const mapPickerClose = document.getElementById('mapPickerClose');
+const mapPickConfirm = document.getElementById('mapPickConfirm');
 
 let pendingLat = null;
 let pendingLng = null;
@@ -126,7 +122,10 @@ function buildCard(place) {
   const card = document.createElement('div');
   card.className = 'place-card';
   card.innerHTML = `
-    <img src="${place.photoUrl}" alt="${escapeHtml(place.name)}">
+    <div class="card-media">
+      <img class="card-bg" src="${place.photoUrl}" alt="">
+      <img class="card-fg" src="${place.photoUrl}" alt="${escapeHtml(place.name)}">
+    </div>
     <div class="card-ring"></div>
     <div class="card-shade">
       <h3>${escapeHtml(place.name)}</h3>
@@ -164,10 +163,12 @@ function resetForm() {
   nameInput.value = '';
   locationInput.value = '';
   gpsStatus.textContent = '';
-  photoPreview.hidden = true;
-  photoPreview.src = '';
+  previewMedia.hidden = true;
+  photoPreviewBg.src = '';
+  photoPreviewFg.src = '';
   uploadPlaceholder.hidden = false;
   photoInput.value = '';
+  hideSuggestions();
   updateSubmitState();
 }
 
@@ -177,14 +178,18 @@ photoInput.addEventListener('change', () => {
   if (!file) return;
   pendingPhotoBlob = file;
   const url = URL.createObjectURL(file);
-  photoPreview.src = url;
-  photoPreview.hidden = false;
+  photoPreviewBg.src = url;
+  photoPreviewFg.src = url;
+  previewMedia.hidden = false;
   uploadPlaceholder.hidden = true;
   updateSubmitState();
 });
 
 nameInput.addEventListener('input', updateSubmitState);
-locationInput.addEventListener('input', updateSubmitState);
+locationInput.addEventListener('input', () => {
+  updateSubmitState();
+  searchLocation(locationInput.value.trim());
+});
 
 function updateSubmitState() {
   submitBtn.disabled = !(pendingPhotoBlob && nameInput.value.trim() && locationInput.value.trim());
@@ -203,12 +208,11 @@ gpsBtn.addEventListener('click', () => {
       pendingLng = pos.coords.longitude;
       gpsBtn.classList.remove('loading');
       gpsStatus.textContent = `Aniqlandi: ${pendingLat.toFixed(4)}, ${pendingLng.toFixed(4)}`;
-      if (!locationInput.value.trim()) {
-        try {
-          const label = await reverseGeocode(pendingLat, pendingLng);
-          if (label) locationInput.value = label;
-        } catch (e) { /* ignore, manual entry still works */ }
-      }
+      hideSuggestions();
+      try {
+        const label = await reverseGeocode(pendingLat, pendingLng);
+        if (label) locationInput.value = label;
+      } catch (e) { /* ignore, manual entry still works */ }
       updateSubmitState();
     },
     (err) => {
@@ -226,6 +230,103 @@ async function reverseGeocode(lat, lng) {
   const a = data.address || {};
   return a.suburb || a.neighbourhood || a.town || a.city || a.village || a.county || data.display_name?.split(',')[0] || null;
 }
+
+// ---------- Location search (autocomplete) ----------
+let searchDebounce = null;
+
+function hideSuggestions() {
+  suggestions.innerHTML = '';
+  suggestions.hidden = true;
+}
+
+function searchLocation(query) {
+  clearTimeout(searchDebounce);
+  if (query.length < 3) {
+    hideSuggestions();
+    return;
+  }
+  searchDebounce = setTimeout(async () => {
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=6`);
+      if (!res.ok) return;
+      const results = await res.json();
+      renderSuggestions(results);
+    } catch (e) { /* ignore, manual entry still works */ }
+  }, 400);
+}
+
+function renderSuggestions(results) {
+  if (!results.length) {
+    hideSuggestions();
+    return;
+  }
+  suggestions.innerHTML = '';
+  results.forEach((r) => {
+    const item = document.createElement('div');
+    item.className = 'suggestion-item';
+    item.textContent = r.display_name;
+    item.addEventListener('click', () => {
+      locationInput.value = r.display_name;
+      pendingLat = parseFloat(r.lat);
+      pendingLng = parseFloat(r.lon);
+      hideSuggestions();
+      updateSubmitState();
+    });
+    suggestions.appendChild(item);
+  });
+  suggestions.hidden = false;
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.location-autocomplete')) hideSuggestions();
+});
+
+// ---------- Map picker ----------
+let pickerMap = null;
+let pickerMarker = null;
+
+function ensurePickerMap() {
+  if (pickerMap) return;
+  const startLat = pendingLat ?? 41.3111;
+  const startLng = pendingLng ?? 69.2797;
+  pickerMap = L.map('pickerMap').setView([startLat, startLng], pendingLat ? 14 : 6);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap',
+  }).addTo(pickerMap);
+  pickerMarker = L.marker([startLat, startLng], { draggable: true }).addTo(pickerMap);
+  pickerMap.on('click', (e) => pickerMarker.setLatLng(e.latlng));
+}
+
+mapPickBtn.addEventListener('click', () => {
+  mapPickerOverlay.classList.add('open');
+  setTimeout(() => {
+    ensurePickerMap();
+    pickerMap.invalidateSize();
+  }, 50);
+});
+
+function closeMapPicker() {
+  mapPickerOverlay.classList.remove('open');
+}
+mapPickerClose.addEventListener('click', closeMapPicker);
+mapPickerOverlay.addEventListener('click', (e) => { if (e.target === mapPickerOverlay) closeMapPicker(); });
+
+mapPickConfirm.addEventListener('click', async () => {
+  const latlng = pickerMarker.getLatLng();
+  pendingLat = latlng.lat;
+  pendingLng = latlng.lng;
+  hideSuggestions();
+  mapPickConfirm.textContent = 'Aniqlanmoqda...';
+  try {
+    const label = await reverseGeocode(pendingLat, pendingLng);
+    locationInput.value = label || `${pendingLat.toFixed(4)}, ${pendingLng.toFixed(4)}`;
+  } catch (e) {
+    locationInput.value = `${pendingLat.toFixed(4)}, ${pendingLng.toFixed(4)}`;
+  }
+  mapPickConfirm.textContent = 'Shu joyni tanlash';
+  updateSubmitState();
+  closeMapPicker();
+});
 
 submitBtn.addEventListener('click', async () => {
   if (submitBtn.disabled) return;
@@ -296,11 +397,3 @@ function buildMapUrl(app, place) {
   }
   return '#';
 }
-
-deletePlaceBtn.addEventListener('click', async () => {
-  if (!activePlace) return;
-  await deletePlace(activePlace.id);
-  places = places.filter((p) => p.id !== activePlace.id);
-  closeSheet();
-  renderAll();
-});
