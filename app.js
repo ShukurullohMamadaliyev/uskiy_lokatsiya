@@ -1,45 +1,56 @@
-// ---------- IndexedDB helper ----------
-const DB_NAME = 'placesDB';
-const STORE = 'places';
-let dbPromise = null;
+// ---------- Supabase (shared database + photo storage) ----------
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-function openDB() {
-  if (dbPromise) return dbPromise;
-  dbPromise = new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = () => {
-      const db = req.result;
-      if (!db.objectStoreNames.contains(STORE)) {
-        db.createObjectStore(STORE, { keyPath: 'id', autoIncrement: true });
-      }
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-  return dbPromise;
-}
-
-async function addPlace(place) {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readwrite');
-    const store = tx.objectStore(STORE);
-    const req = store.add(place);
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
+function mapRow(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    location: row.location,
+    lat: row.lat,
+    lng: row.lng,
+    photoUrl: row.photo_url,
+    createdAt: new Date(row.created_at).getTime(),
+  };
 }
 
 async function getAllPlaces() {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readonly');
-    const store = tx.objectStore(STORE);
-    const req = store.getAll();
-    req.onsuccess = () => resolve(req.result.sort((a, b) => a.createdAt - b.createdAt));
-    req.onerror = () => reject(req.error);
-  });
+  const { data, error } = await sb
+    .from('places')
+    .select('*')
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  return data.map(mapRow);
 }
+
+async function addPlace({ name, location, lat, lng, photoFile }) {
+  const ext = (photoFile.name.split('.').pop() || 'jpg').toLowerCase();
+  const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+
+  const { error: uploadError } = await sb.storage.from('photos').upload(fileName, photoFile);
+  if (uploadError) throw uploadError;
+
+  const { data: { publicUrl } } = sb.storage.from('photos').getPublicUrl(fileName);
+
+  const { data, error } = await sb
+    .from('places')
+    .insert({ name, location, lat, lng, photo_url: publicUrl })
+    .select()
+    .single();
+  if (error) throw error;
+  return mapRow(data);
+}
+
+// Live updates: when a friend adds a place, it appears for everyone without a refresh
+sb
+  .channel('places-changes')
+  .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'places' }, (payload) => {
+    const newPlace = mapRow(payload.new);
+    if (!places.some((p) => p.id === newPlace.id)) {
+      places.push(newPlace);
+      renderAll();
+    }
+  })
+  .subscribe();
 
 // ---------- State ----------
 let places = [];
@@ -92,10 +103,11 @@ let pendingLng = null;
 init();
 
 async function init() {
-  places = await getAllPlaces();
-  places.forEach((place) => {
-    place.photoUrl = URL.createObjectURL(place.photo);
-  });
+  try {
+    places = await getAllPlaces();
+  } catch (e) {
+    places = [];
+  }
   renderAll();
 }
 
@@ -444,23 +456,23 @@ submitBtn.addEventListener('click', async () => {
   submitBtn.disabled = true;
   submitBtn.textContent = 'Saqlanmoqda...';
 
-  const place = {
-    name: nameInput.value.trim(),
-    location: locationInput.value.trim(),
-    lat: pendingLat,
-    lng: pendingLng,
-    photo: pendingPhotoBlob,
-    createdAt: Date.now(),
-  };
-
-  const id = await addPlace(place);
-  place.id = id;
-  place.photoUrl = URL.createObjectURL(pendingPhotoBlob);
-  places.push(place);
+  try {
+    const place = await addPlace({
+      name: nameInput.value.trim(),
+      location: locationInput.value.trim(),
+      lat: pendingLat,
+      lng: pendingLng,
+      photoFile: pendingPhotoBlob,
+    });
+    places.push(place);
+    closeModalFn();
+    renderAll();
+  } catch (e) {
+    gpsStatus.textContent = "Saqlab bo'lmadi, internetni tekshirib qayta urinib ko'ring";
+    submitBtn.disabled = false;
+  }
 
   submitBtn.textContent = "Qo'shish";
-  closeModalFn();
-  renderAll();
 });
 
 // ---------- Map bottom sheet ----------
