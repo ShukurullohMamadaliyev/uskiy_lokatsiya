@@ -94,6 +94,9 @@ init();
 
 async function init() {
   places = await getAllPlaces();
+  places.forEach((place) => {
+    place.photoUrl = URL.createObjectURL(place.photo);
+  });
   renderAll();
 }
 
@@ -114,12 +117,9 @@ function renderAll() {
 
 function renderCarousel() {
   carouselTrack.innerHTML = '';
-  const set = [...places, ...places]; // duplicate for seamless loop
-  set.forEach((place) => {
+  places.forEach((place) => {
     carouselTrack.appendChild(buildCard(place));
   });
-  const duration = Math.max(places.length * 5, 14);
-  carouselTrack.style.animationDuration = duration + 's';
 }
 
 function buildCard(place) {
@@ -304,7 +304,3 @@ deletePlaceBtn.addEventListener('click', async () => {
   closeSheet();
   renderAll();
 });
-
-// Pause carousel drag/hover already via CSS :hover on track parent
-carouselTrack.addEventListener('mouseenter', () => carouselTrack.classList.add('paused'));
-carouselTrack.addEventListener('mouseleave', () => carouselTrack.classList.remove('paused'));

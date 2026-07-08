@@ -192,51 +192,35 @@ main { position: relative; z-index: 2; }
   50% { box-shadow: 0 10px 34px rgba(139,92,246,0.6), 0 0 0 10px rgba(255,255,255,0.02); }
 }
 
-/* ---------- Carousel ---------- */
+/* ---------- Places list (vertical, manual scroll) ---------- */
 .carousel-wrap {
   position: relative;
-  margin-top: 8vh;
-  padding: 20px 0;
-  overflow: hidden;
+  margin-top: 6vh;
+  padding: 10px 20px 20px;
 }
-.fade-edge {
-  position: absolute;
-  top: 0; bottom: 0;
-  width: 90px;
-  z-index: 3;
-  pointer-events: none;
-}
-.fade-left { left: 0; background: linear-gradient(90deg, var(--bg), transparent); }
-.fade-right { right: 0; background: linear-gradient(-90deg, var(--bg), transparent); }
 
 .carousel-track {
   display: flex;
-  gap: 26px;
-  width: max-content;
-  animation: scroll linear infinite;
-  padding: 10px 20px;
-}
-.carousel-track.paused { animation-play-state: paused; }
-
-@keyframes scroll {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
 }
 
 .place-card {
   position: relative;
-  width: 240px;
-  height: 320px;
+  width: 100%;
+  max-width: 380px;
+  height: 280px;
   border-radius: 24px;
   overflow: hidden;
-  flex-shrink: 0;
   cursor: pointer;
   border: 1px solid var(--glass-border);
   transition: transform 0.35s ease, box-shadow 0.35s ease;
   background: #14102a;
+  scroll-snap-align: center;
 }
 .place-card:hover {
-  transform: translateY(-10px) scale(1.035);
+  transform: translateY(-6px) scale(1.02);
   box-shadow: 0 22px 44px rgba(139,92,246,0.35), 0 0 0 1px rgba(255,255,255,0.15);
 }
 .place-card img {
@@ -529,7 +513,7 @@ main { position: relative; z-index: 2; }
 
 /* ---------- Responsive ---------- */
 @media (max-width: 480px) {
-  .place-card { width: 200px; height: 280px; }
+  .place-card { height: 240px; }
   .brand-text h1 { font-size: 21px; }
   .empty-state { margin-top: 8vh; }
 }
