@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Uskiy Kurug uchun Uyrat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="bg-blobs" aria-hidden="true">
+    <span class="blob blob-1"></span>
+    <span class="blob blob-2"></span>
+    <span class="blob blob-3"></span>
+    <div class="noise"></div>
+  </div>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">🌍</span>
+      <div class="brand-text">
+        <h1>Uskiy Kurug uchun Uyrat</h1>
+        <p id="placeCount">Hali joylar qo'shilmagan</p>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section id="emptyState" class="empty-state">
+      <div class="empty-glow"></div>
+      <div class="empty-icon">📍</div>
+      <h2>Birinchi xotirangizni qo'shing</h2>
+      <p>Do'stlar bilan borgan har bir joyingizni rasmga oling, nomlang va xaritada belgilab qo'ying. Ular shu yerda go'zal galereyada aylanib turadi.</p>
+      <button class="btn-primary" id="emptyAddBtn">+ Joy qo'shish</button>
+    </section>
+
+    <section class="carousel-wrap" id="carouselWrap" hidden>
+      <div class="fade-edge fade-left"></div>
+      <div class="fade-edge fade-right"></div>
+      <div class="carousel-track" id="carouselTrack"></div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <span>Sayt yaratuvchisi <strong>Shukurulloh</strong></span>
+    <span class="footer-dot">•</span>
+    <a href="tel:+998200022729">+998 20 002 27 29</a>
+  </footer>
+
+  <button class="fab" id="addBtn" aria-label="Joy qo'shish">
+    <span>+</span>
+  </button>
+
+  <!-- Add Place Modal -->
+  <div class="overlay" id="overlay">
+    <div class="modal" role="dialog" aria-modal="true">
+      <button class="modal-close" id="closeModal">✕</button>
+      <h2 class="modal-title">Yangi xotira qo'shish</h2>
+
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="photoInput" accept="image/*" capture="environment" hidden>
+        <div id="uploadPlaceholder" class="upload-placeholder">
+          <span class="upload-icon">📷</span>
+          <span>Rasm tanlash uchun bosing</span>
+        </div>
+        <img id="photoPreview" class="photo-preview" hidden>
+      </div>
+
+      <div class="field">
+        <label for="nameInput">Joy nomi</label>
+        <input type="text" id="nameInput" placeholder="Masalan: Chorvoq bo'yi" maxlength="60">
+      </div>
+
+      <div class="field">
+        <label for="locationInput">Joylashuvi</label>
+        <div class="location-row">
+          <input type="text" id="locationInput" placeholder="Manzil yoki tuman" maxlength="80">
+          <button class="btn-gps" id="gpsBtn" type="button" title="Joriy joylashuvni aniqlash">📍</button>
+        </div>
+        <p class="gps-status" id="gpsStatus"></p>
+      </div>
+
+      <button class="btn-primary btn-submit" id="submitBtn" disabled>Qo'shish</button>
+    </div>
+  </div>
+
+  <!-- Map chooser bottom sheet -->
+  <div class="overlay overlay-sheet" id="sheetOverlay">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <img id="sheetPhoto" class="sheet-photo" alt="">
+        <div>
+          <h3 id="sheetName"></h3>
+          <p id="sheetLocation"></p>
+        </div>
+      </div>
+      <p class="sheet-label">Qaysi xarita orqali borasiz?</p>
+      <div class="map-options">
+        <button class="map-opt" data-map="google"><span class="map-icon google">G</span>Google Maps</button>
+        <button class="map-opt" data-map="yandex"><span class="map-icon yandex">Y</span>Yandex Maps</button>
+        <button class="map-opt" data-map="2gis"><span class="map-icon twogis">2</span>2GIS</button>
+      </div>
+      <button class="btn-delete" id="deletePlaceBtn">🗑 Bu joyni o'chirish</button>
+      <button class="btn-cancel" id="sheetCancel">Bekor qilish</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
