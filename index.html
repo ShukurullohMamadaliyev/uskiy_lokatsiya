@@ -6,15 +6,26 @@
 <title>Uskiy jgarlar uchun lokatsiyalar</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl/dist/maplibre-gl.css">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <linearGradient id="cometGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#ff3d9a"/>
+        <stop offset="50%" stop-color="#8b5cf6"/>
+        <stop offset="100%" stop-color="#22d3ee"/>
+      </linearGradient>
+    </defs>
+  </svg>
 
   <div class="bg-blobs" aria-hidden="true">
     <span class="blob blob-1"></span>
     <span class="blob blob-2"></span>
     <span class="blob blob-3"></span>
+    <span class="blob blob-4"></span>
     <div class="noise"></div>
   </div>
 
@@ -64,10 +75,7 @@
           <span class="upload-icon">📷</span>
           <span>Rasm tanlash uchun bosing</span>
         </div>
-        <div id="previewMedia" class="preview-media" hidden>
-          <img id="photoPreviewBg" class="preview-bg" alt="">
-          <img id="photoPreviewFg" class="preview-fg" alt="">
-        </div>
+        <img id="photoPreview" class="photo-preview" hidden>
       </div>
 
       <div class="field">
@@ -99,8 +107,12 @@
         <h3>Xaritadan joy tanlang</h3>
         <button class="modal-close" id="mapPickerClose">✕</button>
       </div>
+      <div class="map-search">
+        <input type="text" id="mapSearchInput" placeholder="Joy nomini qidiring, masalan: Rishton" autocomplete="off">
+        <div class="suggestions" id="mapSuggestions" hidden></div>
+      </div>
       <div id="pickerMap" class="picker-map"></div>
-      <p class="map-picker-hint">Xaritani bosib, aniq nuqtani belgilang</p>
+      <p class="map-picker-hint">Qidiring yoki xaritani bosib, aniq nuqtani belgilang</p>
       <button class="btn-primary btn-submit" id="mapPickConfirm">Shu joyni tanlash</button>
     </div>
   </div>
@@ -126,7 +138,12 @@
     </div>
   </div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Full image viewer -->
+  <div class="overlay overlay-viewer" id="imageViewerOverlay">
+    <img id="viewerImg" class="viewer-img" alt="">
+  </div>
+
+  <script src="https://unpkg.com/maplibre-gl/dist/maplibre-gl.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -60,9 +60,7 @@ const closeModal = document.getElementById('closeModal');
 const uploadZone = document.getElementById('uploadZone');
 const photoInput = document.getElementById('photoInput');
 const uploadPlaceholder = document.getElementById('uploadPlaceholder');
-const previewMedia = document.getElementById('previewMedia');
-const photoPreviewBg = document.getElementById('photoPreviewBg');
-const photoPreviewFg = document.getElementById('photoPreviewFg');
+const photoPreview = document.getElementById('photoPreview');
 
 const nameInput = document.getElementById('nameInput');
 const locationInput = document.getElementById('locationInput');
@@ -81,6 +79,11 @@ const sheetCancel = document.getElementById('sheetCancel');
 const mapPickerOverlay = document.getElementById('mapPickerOverlay');
 const mapPickerClose = document.getElementById('mapPickerClose');
 const mapPickConfirm = document.getElementById('mapPickConfirm');
+const mapSearchInput = document.getElementById('mapSearchInput');
+const mapSuggestions = document.getElementById('mapSuggestions');
+
+const imageViewerOverlay = document.getElementById('imageViewerOverlay');
+const viewerImg = document.getElementById('viewerImg');
 
 let pendingLat = null;
 let pendingLng = null;
@@ -118,21 +121,56 @@ function renderCarousel() {
   });
 }
 
+const HOLD_DURATION = 5000;
+
 function buildCard(place) {
   const card = document.createElement('div');
   card.className = 'place-card';
   card.innerHTML = `
-    <div class="card-media">
-      <img class="card-bg" src="${place.photoUrl}" alt="">
-      <img class="card-fg" src="${place.photoUrl}" alt="${escapeHtml(place.name)}">
-    </div>
+    <img class="card-img" src="${place.photoUrl}" alt="${escapeHtml(place.name)}">
     <div class="card-ring"></div>
+    <div class="hold-ring">
+      <svg viewBox="0 0 64 64">
+        <circle class="track" cx="32" cy="32" r="26"></circle>
+        <circle class="progress" cx="32" cy="32" r="26"></circle>
+      </svg>
+    </div>
     <div class="card-shade">
       <h3>${escapeHtml(place.name)}</h3>
       <p>📍 ${escapeHtml(place.location)}</p>
     </div>
   `;
-  card.addEventListener('click', () => openSheet(place));
+
+  const holdRing = card.querySelector('.hold-ring');
+  let holdTimer = null;
+  let longPressFired = false;
+
+  const startHold = () => {
+    longPressFired = false;
+    holdRing.classList.remove('active');
+    void holdRing.offsetWidth;
+    holdRing.classList.add('active');
+    holdTimer = setTimeout(() => {
+      longPressFired = true;
+      holdRing.classList.remove('active');
+      openImageViewer(place);
+    }, HOLD_DURATION);
+  };
+  const cancelHold = () => {
+    clearTimeout(holdTimer);
+    holdRing.classList.remove('active');
+  };
+
+  card.addEventListener('pointerdown', startHold);
+  card.addEventListener('pointerup', cancelHold);
+  card.addEventListener('pointerleave', cancelHold);
+  card.addEventListener('pointercancel', cancelHold);
+  card.addEventListener('contextmenu', (e) => e.preventDefault());
+  card.addEventListener('click', () => {
+    if (longPressFired) { longPressFired = false; return; }
+    openSheet(place);
+  });
+
   return card;
 }
 
@@ -163,9 +201,8 @@ function resetForm() {
   nameInput.value = '';
   locationInput.value = '';
   gpsStatus.textContent = '';
-  previewMedia.hidden = true;
-  photoPreviewBg.src = '';
-  photoPreviewFg.src = '';
+  photoPreview.hidden = true;
+  photoPreview.src = '';
   uploadPlaceholder.hidden = false;
   photoInput.value = '';
   hideSuggestions();
@@ -178,9 +215,8 @@ photoInput.addEventListener('change', () => {
   if (!file) return;
   pendingPhotoBlob = file;
   const url = URL.createObjectURL(file);
-  photoPreviewBg.src = url;
-  photoPreviewFg.src = url;
-  previewMedia.hidden = false;
+  photoPreview.src = url;
+  photoPreview.hidden = false;
   uploadPlaceholder.hidden = true;
   updateSubmitState();
 });
@@ -281,7 +317,17 @@ document.addEventListener('click', (e) => {
   if (!e.target.closest('.location-autocomplete')) hideSuggestions();
 });
 
-// ---------- Map picker ----------
+// ---------- Full image viewer (long-press on a card) ----------
+function openImageViewer(place) {
+  viewerImg.src = place.photoUrl;
+  imageViewerOverlay.classList.add('open');
+}
+function closeImageViewer() {
+  imageViewerOverlay.classList.remove('open');
+}
+imageViewerOverlay.addEventListener('click', closeImageViewer);
+
+// ---------- Map picker (3D, MapLibre GL + OpenFreeMap) ----------
 let pickerMap = null;
 let pickerMarker = null;
 
@@ -289,32 +335,44 @@ function ensurePickerMap() {
   if (pickerMap) return;
   const startLat = pendingLat ?? 41.3111;
   const startLng = pendingLng ?? 69.2797;
-  pickerMap = L.map('pickerMap').setView([startLat, startLng], pendingLat ? 14 : 6);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap',
-  }).addTo(pickerMap);
-  pickerMarker = L.marker([startLat, startLng], { draggable: true }).addTo(pickerMap);
-  pickerMap.on('click', (e) => pickerMarker.setLatLng(e.latlng));
+  pickerMap = new maplibregl.Map({
+    container: 'pickerMap',
+    style: 'https://tiles.openfreemap.org/styles/liberty',
+    center: [startLng, startLat],
+    zoom: pendingLat ? 15 : 5.5,
+    pitch: 55,
+    bearing: -15,
+    antialias: true,
+  });
+  pickerMap.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
+  pickerMarker = new maplibregl.Marker({ draggable: true, color: '#ff3d9a' })
+    .setLngLat([startLng, startLat])
+    .addTo(pickerMap);
+  pickerMap.on('click', (e) => pickerMarker.setLngLat(e.lngLat));
 }
 
 mapPickBtn.addEventListener('click', () => {
   mapPickerOverlay.classList.add('open');
+  // wait for the modal's open transition (0.25s) to finish before creating the
+  // WebGL map, otherwise it can init mid-transition and get stuck with a blank canvas
   setTimeout(() => {
     ensurePickerMap();
-    pickerMap.invalidateSize();
-  }, 50);
+    pickerMap.resize();
+  }, 350);
 });
 
 function closeMapPicker() {
   mapPickerOverlay.classList.remove('open');
+  mapSearchInput.value = '';
+  hideMapSuggestions();
 }
 mapPickerClose.addEventListener('click', closeMapPicker);
 mapPickerOverlay.addEventListener('click', (e) => { if (e.target === mapPickerOverlay) closeMapPicker(); });
 
 mapPickConfirm.addEventListener('click', async () => {
-  const latlng = pickerMarker.getLatLng();
-  pendingLat = latlng.lat;
-  pendingLng = latlng.lng;
+  const ll = pickerMarker.getLngLat();
+  pendingLat = ll.lat;
+  pendingLng = ll.lng;
   hideSuggestions();
   mapPickConfirm.textContent = 'Aniqlanmoqda...';
   try {
@@ -326,6 +384,59 @@ mapPickConfirm.addEventListener('click', async () => {
   mapPickConfirm.textContent = 'Shu joyni tanlash';
   updateSubmitState();
   closeMapPicker();
+});
+
+// ---------- Map picker search (biased to Uzbekistan) ----------
+let mapSearchDebounce = null;
+
+function hideMapSuggestions() {
+  mapSuggestions.innerHTML = '';
+  mapSuggestions.hidden = true;
+}
+
+mapSearchInput.addEventListener('input', () => {
+  clearTimeout(mapSearchDebounce);
+  const query = mapSearchInput.value.trim();
+  if (query.length < 3) {
+    hideMapSuggestions();
+    return;
+  }
+  mapSearchDebounce = setTimeout(async () => {
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=uz&limit=6`);
+      if (!res.ok) return;
+      const results = await res.json();
+      renderMapSuggestions(results);
+    } catch (e) { /* ignore, manual pin drop still works */ }
+  }, 400);
+});
+
+function renderMapSuggestions(results) {
+  if (!results.length) {
+    hideMapSuggestions();
+    return;
+  }
+  mapSuggestions.innerHTML = '';
+  results.forEach((r) => {
+    const item = document.createElement('div');
+    item.className = 'suggestion-item';
+    item.textContent = r.display_name;
+    item.addEventListener('click', () => {
+      const lat = parseFloat(r.lat);
+      const lng = parseFloat(r.lon);
+      ensurePickerMap();
+      pickerMap.flyTo({ center: [lng, lat], zoom: 15, pitch: 55 });
+      pickerMarker.setLngLat([lng, lat]);
+      mapSearchInput.value = r.display_name;
+      hideMapSuggestions();
+    });
+    mapSuggestions.appendChild(item);
+  });
+  mapSuggestions.hidden = false;
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.map-search')) hideMapSuggestions();
 });
 
 submitBtn.addEventListener('click', async () => {
