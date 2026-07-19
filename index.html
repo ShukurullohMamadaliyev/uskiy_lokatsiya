@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 <title>Resorts 🏖️🍹</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a0714">
+<link rel="apple-touch-icon" href="icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl/dist/maplibre-gl.css">
@@ -37,10 +40,18 @@
         <p id="placeCount">Hali joylar qo'shilmagan</p>
       </div>
     </div>
-    <button class="theme-btn" id="themeBtn" aria-label="Rangni tanlash" title="Rangni tanlash">🎨</button>
+    <div class="topbar-actions">
+      <button class="theme-btn" id="mapOverviewBtn" aria-label="Xaritada ko'rish" title="Xaritada ko'rish">🗺️</button>
+      <button class="theme-btn" id="themeBtn" aria-label="Rangni tanlash" title="Rangni tanlash">🎨</button>
+    </div>
   </header>
 
   <main>
+    <section class="toolbar" id="toolbar" hidden>
+      <input type="text" id="searchInput" class="search-input" placeholder="🔍 Joy yoki hudud bo'yicha qidirish" autocomplete="off">
+      <div class="filter-chips" id="filterChips"></div>
+    </section>
+
     <section id="emptyState" class="empty-state">
       <div class="empty-glow"></div>
       <div class="empty-icon">📍</div>
@@ -48,6 +59,8 @@
       <p>Do'stlar bilan borgan har bir joyingizni rasmga oling, nomlang va xaritada belgilab qo'ying. Ular shu yerda go'zal galereyada aylanib turadi.</p>
       <button class="btn-primary" id="emptyAddBtn">+ Joy qo'shish</button>
     </section>
+
+    <p class="no-results" id="noResults" hidden>Hech narsa topilmadi</p>
 
     <section class="carousel-wrap" id="carouselWrap" hidden>
       <div class="carousel-track" id="carouselTrack"></div>
@@ -71,12 +84,17 @@
       <h2 class="modal-title">Yangi xotira qo'shish</h2>
 
       <div class="upload-zone" id="uploadZone">
-        <input type="file" id="photoInput" accept="image/*" hidden>
+        <input type="file" id="photoInput" accept="image/*" multiple hidden>
         <div id="uploadPlaceholder" class="upload-placeholder">
           <span class="upload-icon">📷</span>
-          <span>Rasm tanlash uchun bosing</span>
+          <span>Rasm(lar) tanlash uchun bosing</span>
         </div>
-        <img id="photoPreview" class="photo-preview" hidden>
+        <div id="photoPreviewStrip" class="photo-preview-strip" hidden></div>
+      </div>
+
+      <div class="field">
+        <label for="authorInput">Ismingiz</label>
+        <input type="text" id="authorInput" placeholder="Ismingizni yozing" maxlength="40">
       </div>
 
       <div class="field">
@@ -95,6 +113,11 @@
           <button class="btn-loc-action" id="mapPickBtn" type="button">🗺️ Xaritadan tanlash</button>
         </div>
         <p class="gps-status" id="gpsStatus"></p>
+      </div>
+
+      <div class="field">
+        <label>Turi</label>
+        <div class="category-picker" id="categoryPicker"></div>
       </div>
 
       <button class="btn-primary btn-submit" id="submitBtn" disabled>Qo'shish</button>
@@ -118,22 +141,36 @@
     </div>
   </div>
 
-  <!-- Map chooser bottom sheet -->
+  <!-- Place detail bottom sheet -->
   <div class="overlay overlay-sheet" id="sheetOverlay">
     <div class="sheet">
       <div class="sheet-handle"></div>
-      <div class="sheet-header">
-        <img id="sheetPhoto" class="sheet-photo" alt="">
-        <div>
-          <h3 id="sheetName"></h3>
-          <p id="sheetLocation"></p>
+      <div class="sheet-scroll">
+        <div class="sheet-gallery" id="sheetGallery"></div>
+        <div class="sheet-header">
+          <div>
+            <h3 id="sheetName"></h3>
+            <p id="sheetLocation"></p>
+            <p class="sheet-author" id="sheetAuthor" hidden></p>
+          </div>
         </div>
-      </div>
-      <p class="sheet-label">Qaysi xarita orqali borasiz?</p>
-      <div class="map-options">
-        <button class="map-opt" data-map="google"><span class="map-icon google">G</span>Google Maps</button>
-        <button class="map-opt" data-map="yandex"><span class="map-icon yandex">Y</span>Yandex Maps</button>
-        <button class="map-opt" data-map="2gis"><span class="map-icon twogis">2</span>2GIS</button>
+
+        <div class="reaction-bar" id="reactionBar"></div>
+
+        <div class="comments-section">
+          <div class="comments-list" id="commentsList"></div>
+          <div class="comment-form">
+            <input type="text" id="commentInput" placeholder="Izoh yozing..." maxlength="200">
+            <button id="commentSendBtn" class="btn-comment-send" type="button">➤</button>
+          </div>
+        </div>
+
+        <p class="sheet-label">Qaysi xarita orqali borasiz?</p>
+        <div class="map-options">
+          <button class="map-opt" data-map="google"><span class="map-icon google">G</span>Google Maps</button>
+          <button class="map-opt" data-map="yandex"><span class="map-icon yandex">Y</span>Yandex Maps</button>
+          <button class="map-opt" data-map="2gis"><span class="map-icon twogis">2</span>2GIS</button>
+        </div>
       </div>
       <button class="btn-cancel" id="sheetCancel">Bekor qilish</button>
     </div>
@@ -142,6 +179,17 @@
   <!-- Full image viewer -->
   <div class="overlay overlay-viewer" id="imageViewerOverlay">
     <img id="viewerImg" class="viewer-img" alt="">
+  </div>
+
+  <!-- Overview map: every place at once -->
+  <div class="overlay overlay-map" id="overviewMapOverlay">
+    <div class="map-picker">
+      <div class="map-picker-header">
+        <h3>Barcha joylar xaritada</h3>
+        <button class="modal-close" id="overviewMapClose">✕</button>
+      </div>
+      <div id="overviewMap" class="picker-map"></div>
+    </div>
   </div>
 
   <!-- Theme picker -->
