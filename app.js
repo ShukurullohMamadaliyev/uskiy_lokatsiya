@@ -106,16 +106,11 @@ let pendingLng = null;
 
 // ---------- Theme picker ----------
 const THEMES = [
-  { id: 'aurora', label: 'Aurora', emoji: '🌌' },
-  { id: 'onyx', label: 'Qora Onyx', emoji: '⚫' },
-  { id: 'emerald', label: 'Zumrad', emoji: '💚' },
-  { id: 'crimson', label: 'Qizil Baxmal', emoji: '❤️‍🔥' },
-  { id: 'ocean', label: 'Okean', emoji: '🌊' },
-  { id: 'amethyst', label: 'Ametist', emoji: '💜' },
-  { id: 'sunset', label: 'Kunbotar', emoji: '🌅' },
-  { id: 'rosegold', label: 'Atlas Oltin', emoji: '🌹' },
-  { id: 'arctic', label: 'Muz Shamol', emoji: '❄️' },
-  { id: 'graphite', label: "Po'lat", emoji: '⚙️' },
+  { id: 'emerald', label: "O'rmon", emoji: '🌲' },
+  { id: 'crimson', label: "Cho'g'", emoji: '🔥' },
+  { id: 'ocean', label: 'Okean', emoji: '⚓' },
+  { id: 'amethyst', label: 'Kosmos', emoji: '🌌' },
+  { id: 'rosegold', label: 'Sahro', emoji: '🏜️' },
 ];
 const THEME_KEY = 'siteTheme';
 
