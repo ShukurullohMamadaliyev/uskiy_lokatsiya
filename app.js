@@ -199,7 +199,7 @@ function buildCard(place) {
   const card = document.createElement('div');
   card.className = 'place-card';
   card.innerHTML = `
-    <img class="card-img" src="${place.photoUrl}" alt="${escapeHtml(place.name)}">
+    <img class="card-img" src="${place.photoUrl}" alt="${escapeHtml(place.name)}" loading="lazy" decoding="async">
     <div class="card-ring"></div>
     <div class="hold-ring">
       <svg viewBox="0 0 64 64">
@@ -281,12 +281,33 @@ function resetForm() {
   updateSubmitState();
 }
 
+async function compressImage(file, maxDim = 1600, quality = 0.82) {
+  try {
+    const bitmap = await createImageBitmap(file);
+    let { width, height } = bitmap;
+    if (width > maxDim || height > maxDim) {
+      const scale = maxDim / Math.max(width, height);
+      width = Math.round(width * scale);
+      height = Math.round(height * scale);
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, width, height);
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
+    if (!blob) return file;
+    return new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+  } catch (e) {
+    return file; // fallback to the original if compression isn't supported
+  }
+}
+
 uploadZone.addEventListener('click', () => photoInput.click());
-photoInput.addEventListener('change', () => {
+photoInput.addEventListener('change', async () => {
   const file = photoInput.files[0];
   if (!file) return;
-  pendingPhotoBlob = file;
-  const url = URL.createObjectURL(file);
+  pendingPhotoBlob = await compressImage(file);
+  const url = URL.createObjectURL(pendingPhotoBlob);
   photoPreview.src = url;
   photoPreview.hidden = false;
   uploadPlaceholder.hidden = true;
