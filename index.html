@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<title>Uskiy jgarlar uchun lokatsiyalar</title>
+<title>Resorts 🏖️🍹</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl/dist/maplibre-gl.css">
@@ -33,10 +33,11 @@
     <div class="brand">
       <span class="brand-mark">🌍</span>
       <div class="brand-text">
-        <h1>Uskiy jgarlar uchun lokatsiyalar</h1>
+        <h1>Resorts 🏖️🍹</h1>
         <p id="placeCount">Hali joylar qo'shilmagan</p>
       </div>
     </div>
+    <button class="theme-btn" id="themeBtn" aria-label="Rangni tanlash" title="Rangni tanlash">🎨</button>
   </header>
 
   <main>
@@ -141,6 +142,15 @@
   <!-- Full image viewer -->
   <div class="overlay overlay-viewer" id="imageViewerOverlay">
     <img id="viewerImg" class="viewer-img" alt="">
+  </div>
+
+  <!-- Theme picker -->
+  <div class="overlay" id="themeOverlay">
+    <div class="modal theme-modal">
+      <button class="modal-close" id="themeClose">✕</button>
+      <h2 class="modal-title">Rangni tanlang</h2>
+      <div class="theme-grid" id="themeGrid"></div>
+    </div>
   </div>
 
   <script src="https://unpkg.com/maplibre-gl/dist/maplibre-gl.js"></script>

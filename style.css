@@ -25,6 +25,72 @@ body {
   font-family: 'Manrope', sans-serif;
   min-height: 100vh;
   position: relative;
+  transition: background-color 0.4s ease;
+}
+
+/* ---------- Theme variants ---------- */
+:root[data-theme="onyx"] {
+  --bg: #0a0a0d;
+  --pink: #8b8fa3;
+  --purple: #4c4670;
+  --cyan: #b8c4d9;
+  --gold: #6b5f52;
+}
+:root[data-theme="emerald"] {
+  --bg: #051411;
+  --pink: #34d399;
+  --purple: #059669;
+  --cyan: #6ee7b7;
+  --gold: #b45309;
+}
+:root[data-theme="crimson"] {
+  --bg: #14060a;
+  --pink: #f43f5e;
+  --purple: #9f1239;
+  --cyan: #fb7185;
+  --gold: #c9822e;
+}
+:root[data-theme="ocean"] {
+  --bg: #050b18;
+  --pink: #38bdf8;
+  --purple: #1e40af;
+  --cyan: #7dd3fc;
+  --gold: #c9822e;
+}
+:root[data-theme="amethyst"] {
+  --bg: #0d0714;
+  --pink: #a78bfa;
+  --purple: #6d28d9;
+  --cyan: #c4b5fd;
+  --gold: #c9822e;
+}
+:root[data-theme="sunset"] {
+  --bg: #140a05;
+  --pink: #fb923c;
+  --purple: #ea580c;
+  --cyan: #fbbf24;
+  --gold: #dc2626;
+}
+:root[data-theme="rosegold"] {
+  --bg: #150e0d;
+  --pink: #f9a8d4;
+  --purple: #d4a574;
+  --cyan: #fde68a;
+  --gold: #ec4899;
+}
+:root[data-theme="arctic"] {
+  --bg: #071012;
+  --pink: #67e8f9;
+  --purple: #0e7490;
+  --cyan: #a5f3fc;
+  --gold: #94a3b8;
+}
+:root[data-theme="graphite"] {
+  --bg: #0c0d10;
+  --pink: #64748b;
+  --purple: #334155;
+  --cyan: #94a3b8;
+  --gold: #f59e0b;
 }
 
 /* ---------- Animated background ---------- */
@@ -93,8 +159,12 @@ body {
   position: relative;
   z-index: 2;
   padding: 28px 24px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
-.brand { display: flex; align-items: center; gap: 14px; }
+.brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
 .brand-mark {
   font-size: 34px;
   filter: drop-shadow(0 0 14px rgba(139,92,246,0.6));
@@ -114,6 +184,72 @@ body {
   color: var(--text-dim);
   margin-top: 2px;
 }
+
+.theme-btn {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--glass-border);
+  background: var(--glass);
+  backdrop-filter: blur(10px);
+  font-size: 19px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s ease, transform 0.25s ease;
+}
+.theme-btn:hover { background: rgba(255,255,255,0.12); transform: rotate(18deg); }
+
+/* ---------- Theme picker ---------- */
+.theme-modal { max-width: 380px; }
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+.theme-swatch {
+  position: relative;
+  height: 78px;
+  border-radius: 16px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 0.15s ease, border-color 0.2s ease;
+}
+.theme-swatch:hover { transform: translateY(-2px); }
+.theme-swatch.active { border-color: #fff; box-shadow: 0 0 0 3px rgba(255,255,255,0.15); }
+.theme-swatch-label {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  padding: 7px 9px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.7);
+  background: linear-gradient(180deg, transparent, rgba(0,0,0,0.6));
+}
+.theme-swatch-check {
+  position: absolute;
+  top: 6px; right: 6px;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.55);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px;
+  color: #fff;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.theme-swatch.active .theme-swatch-check { opacity: 1; }
+
+.theme-swatch[data-theme="aurora"] { background: linear-gradient(135deg, #ff3d9a, #8b5cf6, #22d3ee); }
+.theme-swatch[data-theme="onyx"] { background: linear-gradient(135deg, #d4d8e3, #4c4670, #0a0a0d); }
+.theme-swatch[data-theme="emerald"] { background: linear-gradient(135deg, #34d399, #059669, #6ee7b7); }
+.theme-swatch[data-theme="crimson"] { background: linear-gradient(135deg, #f43f5e, #9f1239, #fb7185); }
+.theme-swatch[data-theme="ocean"] { background: linear-gradient(135deg, #38bdf8, #1e40af, #7dd3fc); }
+.theme-swatch[data-theme="amethyst"] { background: linear-gradient(135deg, #a78bfa, #6d28d9, #c4b5fd); }
+.theme-swatch[data-theme="sunset"] { background: linear-gradient(135deg, #fb923c, #ea580c, #fbbf24); }
+.theme-swatch[data-theme="rosegold"] { background: linear-gradient(135deg, #f9a8d4, #d4a574, #fde68a); }
+.theme-swatch[data-theme="arctic"] { background: linear-gradient(135deg, #67e8f9, #0e7490, #a5f3fc); }
+.theme-swatch[data-theme="graphite"] { background: linear-gradient(135deg, #94a3b8, #334155, #64748b); }
 
 /* ---------- Empty state ---------- */
 main { position: relative; z-index: 2; }

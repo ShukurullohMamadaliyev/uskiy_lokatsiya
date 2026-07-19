@@ -96,8 +96,68 @@ const mapSuggestions = document.getElementById('mapSuggestions');
 const imageViewerOverlay = document.getElementById('imageViewerOverlay');
 const viewerImg = document.getElementById('viewerImg');
 
+const themeBtn = document.getElementById('themeBtn');
+const themeOverlay = document.getElementById('themeOverlay');
+const themeClose = document.getElementById('themeClose');
+const themeGrid = document.getElementById('themeGrid');
+
 let pendingLat = null;
 let pendingLng = null;
+
+// ---------- Theme picker ----------
+const THEMES = [
+  { id: 'aurora', label: 'Aurora', emoji: '🌌' },
+  { id: 'onyx', label: 'Qora Onyx', emoji: '⚫' },
+  { id: 'emerald', label: 'Zumrad', emoji: '💚' },
+  { id: 'crimson', label: 'Qizil Baxmal', emoji: '❤️‍🔥' },
+  { id: 'ocean', label: 'Okean', emoji: '🌊' },
+  { id: 'amethyst', label: 'Ametist', emoji: '💜' },
+  { id: 'sunset', label: 'Kunbotar', emoji: '🌅' },
+  { id: 'rosegold', label: 'Atlas Oltin', emoji: '🌹' },
+  { id: 'arctic', label: 'Muz Shamol', emoji: '❄️' },
+  { id: 'graphite', label: "Po'lat", emoji: '⚙️' },
+];
+const THEME_KEY = 'siteTheme';
+
+function applyTheme(id) {
+  if (id === 'aurora') {
+    document.documentElement.removeAttribute('data-theme');
+  } else {
+    document.documentElement.setAttribute('data-theme', id);
+  }
+  localStorage.setItem(THEME_KEY, id);
+}
+
+function buildThemeGrid() {
+  const current = localStorage.getItem(THEME_KEY) || 'aurora';
+  themeGrid.innerHTML = '';
+  THEMES.forEach((t) => {
+    const btn = document.createElement('button');
+    btn.className = 'theme-swatch' + (t.id === current ? ' active' : '');
+    btn.dataset.theme = t.id;
+    btn.innerHTML = `
+      <span class="theme-swatch-check">✓</span>
+      <span class="theme-swatch-label">${t.emoji} ${t.label}</span>
+    `;
+    btn.addEventListener('click', () => {
+      applyTheme(t.id);
+      themeGrid.querySelectorAll('.theme-swatch').forEach((el) => {
+        el.classList.toggle('active', el === btn);
+      });
+      themeOverlay.classList.remove('open');
+    });
+    themeGrid.appendChild(btn);
+  });
+}
+
+themeBtn.addEventListener('click', () => {
+  buildThemeGrid();
+  themeOverlay.classList.add('open');
+});
+themeClose.addEventListener('click', () => themeOverlay.classList.remove('open'));
+themeOverlay.addEventListener('click', (e) => { if (e.target === themeOverlay) themeOverlay.classList.remove('open'); });
+
+applyTheme(localStorage.getItem(THEME_KEY) || 'aurora');
 
 // ---------- Init ----------
 init();
